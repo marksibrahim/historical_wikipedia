@@ -11,7 +11,9 @@ Using the year of the first appearance of a word by the OED, we construct histor
 ## Categories
 
 Using the 3rd level of categories in the historical thesaurus, we tag each article
-with categories based on the words in the title.
+with categories based on the words in the title. 
+
+* 370 categories in total
 
 
 ## Categories Through Time
