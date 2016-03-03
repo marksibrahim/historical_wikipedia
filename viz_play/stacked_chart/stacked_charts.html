@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+
+body {
+  font: 10px sans-serif;
+}
+
+.axis path,
+.axis line {
+  fill: none;
+  stroke: #000;
+  shape-rendering: crispEdges;
+}
+
+div.tooltip {   
+  position: absolute;           
+  text-align: center;           
+  /*width: 60px;                  
+  height: 28px;*/
+  padding: 5px;             
+  font: bold 14px sans-serif;        
+  background: lightsteelblue;   
+  border: 0px;      
+  border-radius: 8px;           
+  pointer-events: none;   
+  color:white;      
+}
+
+</style>
+
+<body>
+
+<div id="chart">
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.5/d3.min.js"></script>
+<script src="http://thematicmapping.org/playground/d3/d3.slider/d3.slider.js"></script>
+<script>
+
+var div = d3.select("body").append("div")   
+    .attr("class", "tooltip")               
+    .style("opacity", 0);
+
+
+var margin = {top: 20, right: 30, bottom: 30, left: 60},
+    width = d3.max([document.body.clientWidth - margin.left - margin.right, 500]),
+    height = d3.max([document.body.clientHeight - margin.top - margin.bottom - 100, 800]);
+
+var x = d3.scale.linear()
+    .range([0, width]);
+
+var y = d3.scale.linear()
+    .range([height, 0]);
+
+var z = d3.scale.category20();
+
+var xAxis = d3.svg.axis()
+    .scale(x)
+    .orient("bottom")
+    .tickFormat(d3.format("d"));
+
+var yAxis = d3.svg.axis()
+    .scale(y)
+    .orient("left");
+
+var stack = d3.layout.stack()
+    .offset("zero")
+    .values(function(d) { return d.values; })
+    .x(function(d) { return d.date; })
+    .y(function(d) { return d.value; });
+
+var nest = d3.nest()
+    .key(function(d) { return d.key; });
+
+var area = d3.svg.area()
+    .interpolate("cardinal")
+    .x(function(d) { return x(d.date); })
+    .y0(function(d) {
+        return y(d.y0);
+    })
+    .y1(function(d) {
+        return y(d.y0 + d.y);
+    });
+
+var dsv = d3.dsv('#', 'text/plain');
+
+var svg = d3.select("#chart").append("svg")
+  .attr("width", width + margin.left + margin.right)
+  .attr("height", height + margin.top + margin.bottom);
+
+var svgGroup;
+
+svg.call(d3.behavior.zoom().on("zoom",function() {
+    svgGroup.attr("transform", "translate(" + d3.event.translate + ")scale(" + d3.event.scale + ")");
+}));
+
+var edge_ids;
+
+function load_data(filename, num_series)
+{
+
+    svg.selectAll("*").remove();
+
+    svgGroup = svg.append("g")
+        .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+    dsv(filename, function(error, data) {
+        if (error) throw error;
+
+        data.forEach(function(d) {
+          d.value = +d.value;
+        });
+
+        var layers = stack(nest.entries(data));
+
+        x.domain(d3.extent(data, function(d) { return d.date; }));
+        y.domain([0, d3.max(data, function(d) { return d.y0 + d.y; })]);
+
+        svgGroup.selectAll(".layer")
+            .data(layers)
+            .enter().append("path")
+            .attr("class", "layer")
+            .attr("d", function(d) { return area(d.values); })
+            .style("fill", function(d, i) { return z(i); });
+
+        svgGroup.selectAll("path")
+            .data(layers)
+            .enter().append("path")
+            .attr("d", function(d) { return area(d.values); });
+
+        svgGroup.selectAll(".layer")
+            .on("mouseover", function(d, i) {
+                div.transition()        
+                    .duration(200)      
+                    .style("opacity", .9);
+                div.html(d.key + "<br/>")
+                    .style("background-color", z(i))
+                    .style("left", (d3.event.pageX) + "px")     
+                    .style("top", (d3.event.pageY - 28) + "px");  
+            })
+            .on("mouseout", function(d) {       
+                div.transition()
+                    .duration(500)
+                    .style("opacity", 0);
+            });
+
+        svgGroup.append("g")
+            .attr("class", "x axis")
+            .attr("transform", "translate(0," + height + ")")
+            .call(xAxis);
+
+        svgGroup.append("g")
+            .attr("class", "y axis")
+            .call(yAxis);
+
+        // svgGroup.selectAll(".layer")
+        //   .append("text")
+        //   .attr("transform", function(d) { console.log(d); return "translate(" + x(2000) + "," + y(d.values[d.values.length-1].y0) + ")"; })
+        //   .attr("x", 3)
+        //   .attr("dy", ".35em")
+        //   .text(function(d) { return d.key; });
+    });
+}
+
+load_data("categories.dsv");
+
+</script>
