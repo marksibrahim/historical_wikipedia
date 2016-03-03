@@ -2,7 +2,7 @@ import json
 
 from operator import itemgetter
 
-with open('categories_decades_transformed.json', 'r') as f:
+with open('../../data/categories_decades_transformed.json', 'r') as f:
   categories = json.load(f)
 
 years = range(1000, 2011, 50)
@@ -12,8 +12,6 @@ f = open('categories.dsv', 'w')
 cats = categories.keys()
 
 order = sorted(zip(categories.keys(), [categories[category]['2000'] for category in categories.keys()]), key=itemgetter(1), reverse=True)
-
-print order
 
 f.write('key#value#date\n')
 
