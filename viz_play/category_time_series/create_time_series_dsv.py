@@ -1,11 +1,14 @@
 import json
 
-with open('categories_decades_transformed.json', 'r') as f:
-  categories = json.load(f)
+with open('../../data/categories_decades_detrended.json', 'r') as f:
+ categories = json.load(f)
+# with open('../../data/categories_decades.json', 'r') as f:
+#   categories = json.load(f)
 
 years = range(1000, 2011, 50)
 
-f = open('data.dsv', 'w')
+# f = open('data.dsv', 'w')
+f = open('data_detrended.dsv', 'w')
 
 cats = categories.keys()
 
@@ -22,3 +25,5 @@ for year in years:
     else:
       f.write('#' + str(categories[category][str(year)]))
   f.write('\n')
+
+f.close()
