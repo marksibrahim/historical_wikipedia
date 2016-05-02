@@ -30,13 +30,13 @@
 
     <div class="settings">
 
-        <!-- <div class="setting">
+        <div class="setting">
             <span class="setting-name">Ranks or Values for Graph</span>
             <div class="setting-value">
-                <input type="radio" name="start" id="ranks" value="ranks" onchange="changeData()" checked>Ranks<br>
-                <input type="radio" name="start" id="values" value="values" onchange="changeData()">Values<br>
+                <input type="radio" name="graphtype" id="ranks" value="ranks" onchange="changeData()" checked>Ranks<br>
+                <input type="radio" name="graphtype" id="values" value="values" onchange="changeData()">Values<br>
             </div>
-        </div> -->
+        </div>
 
         <div class="setting">
             <span class="setting-name">Detrend by # words in category</span>
@@ -79,7 +79,7 @@
 
 var dsv = d3.dsv('#', 'text/plain');
 var graphData, shownData;
-var startoe = false;
+var ranks = true;
 
 var columns = [
     {id: "1000", name: "1000", field: "1000", width: 150, formatter: formatter},
@@ -160,6 +160,11 @@ function changeData()
     if(document.getElementById('detrend').checked)
         detrend = '_detrended';
 
+    if(document.getElementById('ranks').checked)
+        ranks = true;
+    else
+        ranks = false;
+
     // Figure out what years to show
     years = [];
     for(var i=1000; i<2001; i+=100) years.push(i);
@@ -170,16 +175,9 @@ function changeData()
 
 function loadGrid(detrend)
 {
-    d3.json('grid_detrended.json', function(error, slick_data)
+    d3.json('grid' + detrend + '.json', function(error, slick_data)
     {
-        // setting up grid
-        // if(startoe)
-        //   var actual_columns = columns.slice();
-        // else
-        //   var actual_columns = columns.slice(1);
-        var actual_columns = columns.slice();
-
-        grid = new Slick.Grid("#grid", slick_data, actual_columns, options);
+        grid = new Slick.Grid("#grid", slick_data, columns, options);
 
         grid.onClick.subscribe(function(e,args) {
             var cell = grid.getCellFromEvent(e);
@@ -211,46 +209,23 @@ function loadGrid(detrend)
 
 function loadGraph(detrend)
 {
-    x = d3.scale.linear()
-        .range([0, width]);
-
-    var y = d3.scale.linear()
-        .range([height, 0]);
-
-    var xAxis = d3.svg.axis()
-        .scale(x)
-        .orient("bottom")
-        .tickPadding(4)
-        .tickFormat(d3.format("d"));
-
-    var yAxis = d3.svg.axis()
-        .scale(y)
-        .orient("left");
-
     svg.selectAll("*").remove();
 
     svgGroup = svg.append("g")
         .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
-    d3.json('graph_detrended.json', function(error, data) {
+    d3.json('graph' + detrend + '.json', function(error, data) {
         if (error) throw error;
 
         var lastYear = years.length-1;
         data.sort(function(a, b) {
-            return d3.ascending(a.ranks[lastYear].value, b.ranks[lastYear].value);
+            if(ranks)
+                return d3.ascending(a.ranks[lastYear].value, b.ranks[lastYear].value);
+            else
+                return d3.descending(a.values[lastYear].value, b.values[lastYear].value);
         });
 
         data.forEach(function(d, i) {
-            // Delete the first element in all the ranks
-            if(!startoe)
-            {
-                // d.ranks = d.ranks.filter(function(r) {
-                //     return r.date !== 1100;
-                // });
-                // d.values = d.values.filter(function(v) {
-                //     return v.date !== 1100;
-                // });
-            }
             d.color = colors(i);
         });
 
@@ -260,29 +235,23 @@ function loadGraph(detrend)
 
         updateGridColors();
 
-        x.domain([years[0], years[lastYear]]);
-
-        // y.domain([
-        //   d3.min(shownData, function(c) { return d3.min(c.values, function(v) { return v.value; }); }),
-        //   d3.max(shownData, function(c) { return d3.max(c.values, function(v) { return v.value; }); })
-        // ]);
-
-        y.domain([
-          d3.max(shownData, function(c) { return d3.max(c.ranks, function(v) { return v.value; }); }),
-          d3.min(shownData, function(c) { return d3.min(c.ranks, function(v) { return v.value; }); })
-        ]);
-
         // x-axis
+        x = d3.scale.linear()
+            .range([0, width])
+            .domain([years[0], years[lastYear]]);
+        var xAxis = d3.svg.axis()
+            .scale(x)
+            .orient("bottom")
+            .tickPadding(4)
+            .tickFormat(d3.format("d"));
         var axis = svgGroup.append("g")
             .attr("id", "xAxis")
             .attr("transform", "translate(0," + height + ")")
             .call(xAxis);
-
         axis.selectAll("line, path")
             .style("fill", "none")
             .style("stroke", "#000")
             .style("shape-rendering", "crispEdges");
-        
         // Add the text label for the x axis
         axis.append("text")
             .attr("id", "xlabel")
@@ -290,21 +259,38 @@ function loadGraph(detrend)
             .style("text-anchor", "middle")
             .text("Year");
 
+        // y-axis
+        var y = d3.scale.linear();
+            
+        if(ranks)
+            y.range([height, 0]).domain([
+                d3.max(shownData, function(c) { return d3.max(c.ranks, function(v) { return v.value; }); }),
+                d3.min(shownData, function(c) { return d3.min(c.ranks, function(v) { return v.value; }); })
+            ]);
+        else
+            y.range([height, 0]).domain([
+                d3.min(shownData, function(c) { return d3.min(c.values, function(v) { return v.value; }); }),
+                d3.max(shownData, function(c) { return d3.max(c.values, function(v) { return v.value; }); })
+            ]);
+        var yAxis = d3.svg.axis()
+            .scale(y)
+            .orient("left");
         var axis = svgGroup.append("g")
             .attr("id", "yAxis")
             .call(yAxis);
-
         axis.selectAll("line, path")
             .style("fill", "none")
             .style("stroke", "#000")
             .style("shape-rendering", "crispEdges");
-
         // Add a text label for the y axis
-        axis.append("text")
+        var label = axis.append("text")
             .attr("id", "ylabel")
             .attr("transform", "translate(-60," + (height/2) + ")rotate(-90)")
-            .style("text-anchor", "middle")
-            .text('Number of Tags');
+            .style("text-anchor", "middle");
+        if(ranks)
+            label.text('Rank of tag')
+        else
+            label.text('# articles with tag');
 
         // Create the line drawer
         line = d3.svg.line()
@@ -317,7 +303,7 @@ function loadGraph(detrend)
             .data(shownData)
           .enter().append("path")
             .attr("class", "category")
-            .attr("d", function(d) { return line(d.ranks); })
+            .attr("d", function(d) { if(ranks) return line(d.ranks); else return line(d.values);})
             .style("stroke", function(d, i) { return d.color })
             .style("fill", "none")
             .style("stroke-width", function(d, i) { return 2; });
@@ -361,44 +347,47 @@ function changeSeries(cell)
     // Update the coloring
     updateGridColors();
 
-    // Update the y-axis
-    // var y = d3.scale.linear()
-    //     .range([height, 0])
-    //     .domain([
-    //         d3.max(shownData, function(c) { return d3.max(c.ranks, function(v) { return v.value; }); }),
-    //         d3.min(shownData, function(c) { return d3.min(c.ranks, function(v) { return v.value; }); })
-    //     ]);
     var y = d3.scale.linear()
-        .range([0, height])
-        .domain([
+        .range([height, 0]);
+    if(ranks)
+        y.domain([
             d3.max(shownData, function(c) { return d3.max(c.ranks, function(v) { return v.value; }); }),
             d3.min(shownData, function(c) { return d3.min(c.ranks, function(v) { return v.value; }); })
+        ]);
+    else
+        y.domain([
+            d3.max(shownData, function(c) { return d3.max(c.values, function(v) { return v.value; }); }),
+            d3.min(shownData, function(c) { return d3.min(c.values, function(v) { return v.value; }); })
         ]);
 
     var yAxis = d3.svg.axis()
         .scale(y)
         .orient("left");
-
+    // Update the y-axis
     svgGroup.selectAll("#yAxis").remove();
-
     var axis = svgGroup.append("g")
         .attr("id", "yAxis")
         .call(yAxis);
-
     axis.selectAll("line, path")
         .style("fill", "none")
         .style("stroke", "#000")
         .style("shape-rendering", "crispEdges");
 
      // Add a text label for the y axis
-    axis.append("text")
+    label = axis.append("text")
         .attr("id", "ylabel")
         .attr("transform", "translate(-60," + (height/2) + ")rotate(-90)")
-        .style("text-anchor", "middle")
-        .text('Rank');
+        .style("text-anchor", "middle");
+    if(ranks)
+        label.text('Rank of tag')
+    else
+        label.text('# articles with tag');
 
-    // Update the line drawer
-    line = line.y(function(d) { return y(d.value); });
+    // Create the line drawer
+    line = d3.svg.line()
+        .interpolate("linear")
+        .x(function(d) { return x(d.date); })
+        .y(function(d) { return y(d.value); });
 
     // Update the graph data
     var categories = svgGroup.selectAll(".category").data(shownData);
@@ -406,6 +395,7 @@ function changeSeries(cell)
     // Add the new lines
     categories.enter().append("path")
         .attr("class", "category")
+        .attr("d", function(d) { if(ranks) return line(d.ranks); else return line(d.values); })
         .attr("id", function(d, i) { return d.name.slice(4);})
         .style("stroke-width", "0");
 
@@ -423,7 +413,7 @@ function changeSeries(cell)
 
     // Transition in the new lines
     categories.transition().duration(500)
-        .attr("d", function(d) { return line(d.ranks); })
+        .attr("d", function(d) { if(ranks) return line(d.ranks); else return line(d.values); })
         .style("stroke", function(d, i) { return d.color })
         .style("fill", "none")
         .style("stroke-width", function(d, i) { return 2; });

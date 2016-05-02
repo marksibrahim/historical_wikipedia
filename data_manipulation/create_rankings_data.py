@@ -4,11 +4,16 @@ import operator
 detrend = True
 
 if detrend:
-  with open('../../data/categories_decades_detrended.json', 'r') as f:
+  with open('../data/categories_decades_detrended_by_word_counts.json', 'r') as f:
     categories = json.load(f)
 else:
-  with open('../../data/categories_decades_transformed.json', 'r') as f:
+  with open('../data/categories_decades_transformed.json', 'r') as f:
     categories = json.load(f)
+
+# for category in categories:
+#   for key in categories[category]:
+#     if categories[category][key] == None:
+#       categories[category][key] = 0
 
 years = range(1000, 2001, 100)
 
@@ -34,10 +39,10 @@ for year in years:
     grid[y][str(year)] = t[0] + ' (' + str(int(t[1])) + ')'
 
 if detrend:
-  with open('grid_detrended.json', 'w') as o:
+  with open('../viz_play/rankings/grid_detrended.json', 'w') as o:
     json.dump(grid, o)
 else:
-  with open('grid.json', 'w') as o:
+  with open('../viz_play/rankings/grid.json', 'w') as o:
     json.dump(grid, o)
 
 for category in cats:
@@ -53,8 +58,8 @@ for category in cats:
   graph.append({'name': category, 'values': values, 'ranks': catranks})
 
 if detrend:
-  with open('graph_detrended.json', 'w') as f:
+  with open('../viz_play/rankings/graph_detrended.json', 'w') as f:
     json.dump(graph, f)
 else:
-  with open('graph.json', 'w') as f:
+  with open('../viz_play/rankings/graph.json', 'w') as f:
     json.dump(graph, f)
