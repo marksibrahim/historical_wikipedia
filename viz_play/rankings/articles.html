@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+<meta charset="utf-8">
+
+<link rel="stylesheet" href="http://fletcherhaz.github.io/sorel/css/slick.grid.css" type="text/css"/>
+<link rel="stylesheet" href="http://fletcherhaz.github.io/sorel/css/jquery-ui-1.8.16.custom.css" type="text/css"/>
+<link rel="stylesheet" href="http://fletcherhaz.github.io/sorel/css/slick-default-theme.css" type="text/css"/>
+
+<link rel="stylesheet" type="text/css" href="http://fletcherhaz.github.io/sorel/css/main.css">
+<link rel="stylesheet" type="text/css" href="http://fletcherhaz.github.io/sorel/css/words.css">
+<link rel="stylesheet" type="text/css" href="http://fletcherhaz.github.io/sorel/css/d3.slider.css">
+
+<!-- Need to use JQuery 1.7 for SlickGrid -->
+<script src="http://fletcherhaz.github.io/sorel/lib/jquery-1.7.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.5/d3.min.js"></script>
+
+<script src="http://fletcherhaz.github.io/sorel/lib/d3.slider.js"></script>
+<script src="http://fletcherhaz.github.io/sorel/lib/jquery.event.drag-2.0.min.js"></script>
+<script src="http://fletcherhaz.github.io/sorel/lib/slick.core.js"></script>
+<script src="http://fletcherhaz.github.io/sorel/lib/slick.grid.js"></script>
+
+</head>
+
+<body>
+
+<div class="main">
+
+    <div class="settings">
+
+        <div class="setting">
+            <span class="setting-name">Selected Tag:</span>
+            <div class="setting-value" id="selected_tag">
+            </div>
+        </div>
+
+        <div class="setting">
+            <span class="setting-name">Years for Word Change:</span>
+            <div class="setting-value">
+                <button type="button" style="margin-bottom:10px;" onclick="changeYear()">Change Year</button>
+                <div id="year_slider" style="margin-bottom:30px;">
+                </div>
+            </div>
+        </div>
+
+        <div class="setting">
+            <span class="setting-name">Tags:</span>
+            <div class="setting-value">
+                <div id="tags" style="height:400px;overflow:scroll;">
+                </div>
+            </div>
+        </div>
+
+        <div class="setting">
+            <span class="setting-name">Notes:</span>
+            <div class="setting-value">
+                Click on an articles to view it on Wikipedia
+            </div>
+        </div>
+
+    <!--     <div class="setting">
+            <span class="setting-name"></span>
+            <div class="setting-value">
+            </div>
+        </div> -->
+
+    </div>
+
+    <div class="lists">
+
+        <div class="list">
+            <h3>Category Words</h3>
+            <div id="articles" class="words">
+            </div>
+        </div>
+
+        <div class="list">
+            <h3>Added Words</h3>
+            <div id="added_articles" class="words">
+            </div>
+        </div>
+
+    </div>
+
+</div>
+
+<div id="status" class="overlay">
+    <div style="opacity:0.4;background-color:#ccc;position:fixed;width:100%;height:100%;top:0px;left:0px;z-index:1000;"></div>
+    <!-- Provided by http://loading.io/ -->
+    <img src="http://fletcherhaz.github.io/sorel/static/hourglass.svg" style="opacity:1;position: fixed;left:575px;top:300px;">
+</div>
+
+
+</body>
+
+<script language="javascript">
+
+var firstDone = false;
+var link;
+var year = 2000;
+var tag;
+
+$(function()
+{
+    // Change the lists div to a fixed height now that it's rendered
+    height = $('.lists').height();
+    if(height < 400)
+        height = 400;
+    $('.lists').css('height', height);
+    $('.lists').css('top', '0');
+    $('.lists').css('position', 'relative');
+    $('.words').css('height', (height-60) + 'px');
+
+    link = window.location.hash.substr(1);
+    if(link !== '')
+    {  
+        firstDone = false;
+        year = parseInt(link.substring(link.indexOf('/')+1));
+
+        loadArticles();
+    }
+    loadTags();
+
+    d3.select('#year_slider').call(d3.slider()
+        .axis(d3.svg.axis().ticks(3, "d"))
+        .min(1200)
+        .max(2000)
+        .step(10)
+        .value(year)
+        .on("slide", function(evt, value) {
+            year = value;
+        })
+    );
+});
+
+window.onhashchange = loadArticles;
+
+function loadArticles()
+{
+    document.getElementById("status").style.display = "inline";
+    link = window.location.hash.substr(1);
+    year = parseInt(link.substring(link.indexOf('/')+1));
+    tag = link.substring(0, link.indexOf('/'));
+    document.getElementById("selected_tag").innerHTML = "<b>" + tag + "</b>";
+
+    d3.json("articles_for_tags/" + tag + ".json", function(error_1, data_1) {
+        if(error_1) console.log(error_1);
+
+        var last_year = parseInt(year) - 10;
+        var articles = [];
+        var added_articles = [];
+  
+        data_1.forEach(function(d_1, i) {
+            var article_is_here = false;
+            var article_was_here = false;
+            // Both articles exist in the current year
+            if(d_1[1] <= year)
+            {
+                article_is_here = true;
+            }
+            // Both words exist in the last year
+            if(d_1[1] <= last_year)
+            {
+                article_was_here = true;
+            }
+            if(article_is_here)
+              articles.push({
+                  id: i,
+                  article: d_1[0] + "",
+                  start: d_1[1] + ""
+              });
+            if(article_is_here && !article_was_here)
+              added_articles.push({
+                  id: i,
+                  article: d_1[0] + "",
+                  start: d_1[1] + ""
+              });
+        });
+
+        var tmp = 0;
+        articles.sort(function(a, b) {
+            tmp = a.start.localeCompare(b.start);
+            if(tmp != 0) return tmp;
+            else return a.article.localeCompare(b.article);
+        });
+        added_articles.sort(function(a, b) {
+            tmp = a.start.localeCompare(b.start);
+            if(tmp != 0) return tmp;
+            else return a.article.localeCompare(b.article);
+        });
+
+        // setting up grid
+        var columns = [
+            {id: "article", name: "Article", field: "article", width: 185},
+            {id: "start", name: "Start", field: "start", width: 50}
+        ];
+
+        var options = {
+            enableCellNavigation: true,
+            enableColumnReorder: false
+        };
+
+        var grid1 = new Slick.Grid("#articles", articles, columns, options);
+
+        grid1.onClick.subscribe(function(e,args) {
+            var cell = grid1.getCellFromEvent(e);
+            window.open('http://en.wikipedia.org/wiki/' + articles[cell.row].article);
+        });
+
+        var grid2 = new Slick.Grid("#added_articles", added_articles, columns, options);
+
+        grid2.onClick.subscribe(function(e,args) {
+            var cell = grid2.getCellFromEvent(e);
+            window.open('http://en.wikipedia.org/wiki/' + added_articles[cell.row].article);
+        });
+
+        document.getElementById("status").style.display = "none";
+    });
+}
+
+function loadTags()
+{
+    document.getElementById("status").style.display = "inline";
+    document.getElementById('tags').innerHTML = '';
+    var tags = document.getElementById('tags');
+    d3.json("tags.json", function(error, data) {
+        if(error) console.log(error);
+        data.forEach(function(d) {
+            var tmp = document.createElement("div");
+            tmp.style.width = "300px;"
+            var tag = d.replace(/ /g, '_');
+            tag = tag.replace(/\//, '_');
+            tmp.innerHTML = '<a href="articles.html#' + tag + '/' + year + '">' + d + '</a><br>';
+            tags.appendChild(tmp);
+        });
+        document.getElementById("status").style.display = "none";
+    });
+}
+
+function changeYear()
+{
+    location.href = "articles.html#" + tag + '/' + year;
+}
+
+</script>
+
+</html>

@@ -81,19 +81,15 @@ var dsv = d3.dsv('#', 'text/plain');
 var graphData, shownData;
 var ranks = true;
 
-var columns = [
-    {id: "1000", name: "1000", field: "1000", width: 150, formatter: formatter},
-    {id: "1100", name: "1100", field: "1100", width: 150, formatter: formatter},
-    {id: "1200", name: "1200", field: "1200", width: 150, formatter: formatter},
-    {id: "1300", name: "1300", field: "1300", width: 150, formatter: formatter},
-    {id: "1400", name: "1400", field: "1400", width: 150, formatter: formatter},
-    {id: "1500", name: "1500", field: "1500", width: 150, formatter: formatter},
-    {id: "1600", name: "1600", field: "1600", width: 150, formatter: formatter},
-    {id: "1700", name: "1700", field: "1700", width: 150, formatter: formatter},
-    {id: "1800", name: "1800", field: "1800", width: 150, formatter: formatter},
-    {id: "1900", name: "1900", field: "1900", width: 150, formatter: formatter},
-    {id: "2000", name: "2000", field: "2000", width: 150, formatter: formatter}
-];
+// How many years are there
+var years = [];
+var columns = [];
+var year_resolution = 20;
+for(var i=1000; i<2001; i+=year_resolution)
+{
+    years.push(i);
+    columns.push({id: "" + i, name: "" + i, field: "" + i, width: 150, formatter: formatter});
+}
 
 var options = {
     enableCellNavigation: true,
@@ -119,11 +115,11 @@ function formatter(row, cell, value, columnDef, dataContext) {
         return '<div>&nbsp;' + value + '</div>';
 }
 
-// How many years are there
-var years = [];
+
+
 var width = 800;
 var height = 300;
-var svg, margin;
+var svg, margin, x;
 
 $(function()
 {
@@ -164,10 +160,6 @@ function changeData()
         ranks = true;
     else
         ranks = false;
-
-    // Figure out what years to show
-    years = [];
-    for(var i=1000; i<2001; i+=100) years.push(i);
 
     // Load up the data and show it
     loadGrid(detrend);
@@ -469,6 +461,12 @@ function addMouse(categories)
             div.transition()
                 .duration(500)
                 .style("opacity", 0);
+        })
+        .on("click", function(d) {
+            var tag = d.name.replace(/ /g, '_');
+            tag = tag.replace(/\//g, '_');
+            var this_year = Math.round(x.invert(d3.mouse(this)[0])/100)*100;
+            window.open('articles.html#' + tag + '/' + this_year);
         });
 }
 

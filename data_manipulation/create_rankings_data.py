@@ -15,7 +15,7 @@ else:
 #     if categories[category][key] == None:
 #       categories[category][key] = 0
 
-years = range(1000, 2001, 100)
+years = range(1000, 2001, 20)
 
 cats = categories.keys()
 

@@ -1,1 +1,74 @@
 %% Fletcher to describe ranking of categories through time
+
+%% Need to work on what articles/words contribute to the rise and fall of certain tags.
+
+\section{Results}
+
+\subsection{Accuracy of tags}
+
+In order to determine the accuracy of our tagging mechanism we manually examined a random sample of 100 articles from the top five tags of 2000.
+Each article was visited by a reviewer and the tag was either marked as correct or incorrect.
+The percentage of correct tags, using an tagging mechanism based soley upon the article title, is shown in Tab. \ref{tab:tagaccuracy}.
+The list of articles used for each tag and whether they were correct or incorrect is included in \todo{Appendix}.
+
+\begin{figure}[!tp]
+  \centering
+    \begin{tabular}{ |c|c|c| }
+      \hline
+      Category           & $\%$ Correct \\
+      \hline
+      The Arts           & $\%$ \\
+      \hline
+      Relative Position  & $\%$ \\
+      \hline
+      Sport              & $\%$ \\
+      \hline
+      Farming            & $\%$ \\
+      \hline
+      Navigation         & $\%$ \\
+      \hline
+    \end{tabular}
+    \caption{
+      \todo{Add caption}
+    }\label{tab:tagaccuracy}
+\end{figure}
+
+\todo{Discuss the table}
+
+\subsection{Usage of tags}
+
+Once all of Wikipedia has been processed, we examine how often each tag, or category, is used.
+Because, each word has a date associated with it, we can scroll back through time and examine when the language of the article title was first used.
+For example, \textit{Exile on Main Street} is a Rolling Stones album from 1972 but all four of those words are in the English language by 1300.
+In \todo{Figure} we show the frequency of usage over time for the top ten tag in 2000.
+
+By definition these series are monotonically increasing because a tag is never removed from an article once it is used.
+\textit{The Arts} is the dominant tag with by far the most usage and \textit{Relative position} is next.
+All the series follow a similar trend and this trend is similar to the trend of the number of words added into the thesaurus over time.
+In order to examine how much of the changes shown in \todo{Figure} are due to these underlying factors we detrend each series by the number of words in the category at each year.
+The resulting plot is shown in \todo{Figure}.
+
+\todo{Discuss the detrended plot}
+
+\subsection{Ranking the tags}
+
+\todo{Figure 1B} shows a table with the top ten most used tags at every 100 years since 1000 AD.
+\todo{Figure 1A} shows the graph of the ranking of those tags.
+Thus, \texit{The Arts} is the most used tag in the year 1400, so it receives a rank of $0$ on the graph.
+
+When examining these two charts, it becomes clear that the rankings are very stable, especially in the last 400 years.
+Since 1600, none otf the top seven have changed rank.
+It is worth emphasizing here that the tags are still changing how often they are used.
+This can be seen from the numbers in the table in \todo{Figure 1B}, which represent the number of times that particular tag has been used.
+Every tag is being used more at every 100 year interval, but their relative sizes may not change, leading to no change in the rankings.
+
+However, there are some exceptions to the trend stated above.
+\textit{Number} is ranked 4th in year 1000 and year 1100 but then falls off dramatically only to resurge and make it back to the top ten by year 2000.
+Physics follows a similar pattern of falling off after a high initial ranking of $5$, but it's highest ranking after 1200 is 18 in year 2000.
+The chaotic changes that take place between 1100 and 1400 are mostly due to the transition between Old English and Middle English to Modern English that was occuring at that time. \todo{CITATION}
+
+\subsection{What words matter}
+
+
+
+
