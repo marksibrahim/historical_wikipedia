@@ -15,6 +15,7 @@
 <!-- Need to use JQuery 1.7 for SlickGrid -->
 <script src="http://fletcherhaz.github.io/sorel/lib/jquery-1.7.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.5/d3.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3-legend/1.8.0/d3-legend.js"></script>
 
 <script src="http://fletcherhaz.github.io/sorel/lib/jquery.event.drag-2.0.min.js"></script>
 <script src="http://fletcherhaz.github.io/sorel/lib/slick.core.js"></script>
@@ -54,6 +55,15 @@
         </div>
 
         <div class="setting">
+            <span class="setting-name">Download SVG:</span>
+            <div class="setting-values">
+                <button onclick="downloadSVG()">Create SVG Link</button>
+                <div id="svg_link">
+                </div>
+            </div>
+        </div>
+
+        <div class="setting">
             <span class="setting-name"></span>
             <div class="setting-value">
             </div>
@@ -80,6 +90,7 @@
 var dsv = d3.dsv('#', 'text/plain');
 var graphData, shownData;
 var ranks = true;
+var detrend = '';
 
 // How many years are there
 var years = [];
@@ -132,6 +143,7 @@ $(function()
     height = $('.rankings').height() - 10;
     if(height < 500)
         height = 500;
+    height += 300
     $('.rankings').css('width', width + "px");
     $('.rankings').css('height', height + "px");
     $('.rankings').css('top', '0');
@@ -143,7 +155,7 @@ $(function()
     height = Math.round(height/2) - margin.top - margin.bottom;
 
     svg = d3.select("#graph").append("svg")
-        .attr("id", "graphsvg")
+        .attr("id", "graph_svg")
         .attr("width", width + margin.left + margin.right)
         .attr("height", height + margin.top + margin.bottom);
 
@@ -152,7 +164,7 @@ $(function()
 
 function changeData()
 {
-    var detrend = '';
+    detrend = '';
     if(document.getElementById('detrend').checked)
         detrend = '_detrended';
 
@@ -302,6 +314,15 @@ function loadGraph(detrend)
 
         // Add mouse interaction with the lines
         addMouse(categories);
+
+        // Add the legend
+        var cats = [];
+        var cat_colors = [];
+        shownData.forEach(function(d) {
+            cats.push(d.name);
+            cat_colors.push(d.color);
+        });
+        createLegend(cats, cat_colors);
     });
 
 }
@@ -348,8 +369,8 @@ function changeSeries(cell)
         ]);
     else
         y.domain([
-            d3.max(shownData, function(c) { return d3.max(c.values, function(v) { return v.value; }); }),
-            d3.min(shownData, function(c) { return d3.min(c.values, function(v) { return v.value; }); })
+            d3.min(shownData, function(c) { return d3.min(c.values, function(v) { return v.value; }); }),
+            d3.max(shownData, function(c) { return d3.max(c.values, function(v) { return v.value; }); })
         ]);
 
     var yAxis = d3.svg.axis()
@@ -470,6 +491,99 @@ function addMouse(categories)
         });
 }
 
+function createLegend(categories, colors)
+{
+    var ordinal = d3.scale.ordinal()
+        .domain(categories)
+        .range(colors);
+
+    var legendOrdinal = d3.legend.color()
+      .shape("path", d3.svg.symbol().type("circle").size(150)())
+      .shapePadding(20)
+      .scale(ordinal);
+
+    svgGroup.append("g")
+      .attr("class", "legendOrdinal")
+      .attr("transform", "translate(" + (x.range()[1]+20) + ",20)")
+      .call(legendOrdinal);
+
+}
+
+// Based upon
+// http://stackoverflow.com/questions/23218174/how-do-i-save-export-an-svg-file-after-creating-an-svg-with-d3-js-ie-safari-an
+function downloadSVG()
+{
+    // Temporary stuff
+
+    // Let's bump up the font sizes so when the graph is scaled down it looks ok
+    svg.selectAll("text").style("font-size", "30px");
+    // Update the label transforms since the text is bigger (The '20' is half the font size plus padding)
+    svg.select("#xlabel")
+        .attr("transform", "translate(" + (width / 2) + " ," + (svg.select("#xAxis").node().getBBox().height+20) + ")");
+    var ylabelPadding = -60;
+    if(!ranks)
+        ylabelPadding = -130;
+    if(!ranks && detrend != '')
+        ylabelPadding = -100;
+    svg.select("#ylabel").attr("transform", "translate(" + ylabelPadding + "," + (height/2) + ")rotate(-90)");
+    //svg.select("#ylabel").attr("transform", "translate(-60," + (height/2) + ")rotate(-90)");
+    //.attr("transform", "translate(" + (width / 2) + " ," + (height + margin.bottom) + ")")
+
+
+    // How much whitespace on each edge do we want
+    var padding = 20;
+    // Reset the scale on the main svgGroup
+    // Todo: Handle scaling
+    svgGroup.attr("transform", "scale(1)");
+    // Get the bounding box of all the SVG stuff
+    var bbox = svgGroup.node().getBBox();
+    // Move it so the top left corner is at (0,0)
+    svgGroup.attr("transform", "translate(" + (Math.abs(bbox.x)+padding) + "," + (Math.abs(bbox.y)+padding) + ")");
+    // No set the width and height of the svg to show all the contents, plus a little padding
+    svg.attr("width", bbox.width + (padding*2));
+    svg.attr("height", bbox.height + (padding*2));
+
+    //get svg source.
+    var serializer = new XMLSerializer();
+    var source = serializer.serializeToString(document.getElementById("graph_svg"));
+
+    //add name spaces.
+    if(!source.match(/^<svg[^>]+xmlns="http\:\/\/www\.w3\.org\/2000\/svg"/)){
+        source = source.replace(/^<svg/, '<svg xmlns="http://www.w3.org/2000/svg"');
+    }
+    if(!source.match(/^<svg[^>]+"http\:\/\/www\.w3\.org\/1999\/xlink"/)){
+        source = source.replace(/^<svg/, '<svg xmlns:xlink="http://www.w3.org/1999/xlink"');
+    }
+
+    //add xml declaration
+    source = '<?xml version="1.0" standalone="no"?>\r\n' + source;
+
+    //convert svg source to URI data scheme.
+    var url = "data:image/svg+xml;charset=utf-8,"+encodeURIComponent(source);
+
+    //set url value to an element's href attribute.
+    document.getElementById("svg_link").innerHTML = '';
+    var tmp = document.createElement("a");
+    tmp.href = url;
+    tmp.download = "svg_test.svg";
+    tmp.innerHTML = "download";
+    document.getElementById("svg_link").appendChild(tmp);
+    //window.open(url);
+
+    // Reset x-label to zero so it doesn't affect the bounding box calculation later
+    svg.selectAll("#xlabel")
+        .attr("transform", "translate(" + (width / 2) + " ,0)");
+    // Reset the font size
+    svg.selectAll("text")
+        .style("font-size", "10px");
+    // Reset the label transforms
+    svg.selectAll("#xlabel")
+        .attr("transform", "translate(" + (width / 2) + " ," + (svg.select("#xAxis").node().getBBox().height+5) + ")");
+    svg.select("#ylabel")
+        .attr("transform", "translate(-60," + (height/2) + ")rotate(-90)")
+    // Add the notes back in
+    //addNotes();
+}
 
 </script>
 
